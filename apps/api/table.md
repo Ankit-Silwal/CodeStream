@@ -25,3 +25,10 @@ CREATE TABLE room_participants (
   joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(room_id, user_id)
 );
+
+CREATE TABLE room_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

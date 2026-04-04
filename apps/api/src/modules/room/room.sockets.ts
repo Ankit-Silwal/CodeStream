@@ -1,0 +1,28 @@
+import type { Server, Socket } from "socket.io";
+
+export function setupRoomSockets(io: Server, socket: Socket) {
+  socket.on("join-room", (data) => {
+    const { roomId, userId } = data;
+    
+    if (!roomId) {
+      return socket.emit("error", { message: "Room ID is required to join" });
+    }
+    socket.join(roomId);
+    console.log(`User ${userId || socket.id} joined room ${roomId}`);
+
+    socket.to(roomId).emit("user-joined", {
+      userId: userId || socket.id,
+      message: `A new user joined the room`
+    });
+  });
+
+  socket.on("leave-room", (data) => {
+    const { roomId, userId } = data;
+    if (!roomId) return;
+    socket.leave(roomId);
+    console.log(`User ${userId || socket.id} left room ${roomId}`);
+    socket.to(roomId).emit("user-left", {
+      userId: userId || socket.id,
+    });
+  });
+}

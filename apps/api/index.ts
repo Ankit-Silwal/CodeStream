@@ -1,13 +1,20 @@
-import "dotenv/config"
-import app from "./app.js"
-const PORT=process.env.PORT;
+import "dotenv/config";
+import http from "node:http";
+import app from "./app.js";
+import { initializeSocket } from "./src/configs/socket.js";
 
-app.get("health",(req,res)=>{
+const PORT = process.env.PORT || 5000;
+
+app.get("/health", (req, res) => {
   return res.json({
-    success:true
-  })
-})
+    success: true
+  });
+});
 
-app.listen(PORT,()=>{
-  console.log(`Backend server has begun at port ${PORT}`)
-})
+const server = http.createServer(app);
+
+initializeSocket(server);
+
+server.listen(PORT, () => {
+  console.log(`Backend server has begun at port ${PORT}`);
+});
