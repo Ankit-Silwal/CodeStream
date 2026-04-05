@@ -9,7 +9,16 @@ export async function createRoomService(data: createRoomInput) {
     RETURNING *
     `,[data.name,data.owner_id,data.language,data.is_private]
   )
-  return res.rows[0]
+  const room = res.rows[0];
+
+  await pool.query(
+    `
+    INSERT INTO room_participants (room_id, user_id, role)
+    VALUES ($1, $2, $3)
+    `, [room.id, data.owner_id, 'owner']
+  );
+
+  return room;
 }
 
 export async function leaveRoomService(userId:string,roomId:string){

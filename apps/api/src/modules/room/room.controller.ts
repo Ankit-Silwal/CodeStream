@@ -57,7 +57,7 @@ export async function leaveRoom(req:Request,res:Response){
 }
 
 export async function addMember(req: Request, res: Response) {
-  const { roomId, targetUserId, role = 'viewer' } = req.body;
+  const { roomId, targetUserId, role = 'editor' } = req.body;
   const userId = req.userId;
 
   if (!roomId || !targetUserId) {

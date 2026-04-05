@@ -19,6 +19,7 @@ export async function codeChangeSocket(socket:Socket,roomId:string,code:string){
       return socket.emit("error",{message:"Invalid code-change payload"})
     }
     const key=`doc:${roomId}`;
+    console.log("Code update is working for code",code)
     await redis.set(key,code);
     socket.to(roomId).emit("code-update",code);
   }catch(err){

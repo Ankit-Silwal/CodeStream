@@ -16,7 +16,7 @@ export function setupRoomSockets(io: Server, socket: Socket) {
       message: `A new user joined the room`
     });
   });
-  socket.on("change-code",async (data)=>{
+  socket.on("code-update",async (data)=>{
     const {roomId,code}=data;
     await codeChangeSocket(socket,roomId,code);
   })
