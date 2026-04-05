@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "tsx watch worker.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,5 +15,8 @@
     "@types/node": "^22.19.17",
     "tsx": "^4.21.0",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "bullmq": "^5.73.0"
   }
 }
