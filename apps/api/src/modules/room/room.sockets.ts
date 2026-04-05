@@ -1,5 +1,5 @@
 import type { Server, Socket } from "socket.io";
-import { loadContentSocket } from "../content/content.socket.js";
+import { codeChangeSocket, loadContentSocket } from "../content/content.socket.js";
 
 export function setupRoomSockets(io: Server, socket: Socket) {
   socket.on("join-room", async (data) => {
@@ -16,7 +16,10 @@ export function setupRoomSockets(io: Server, socket: Socket) {
       message: `A new user joined the room`
     });
   });
-
+  socket.on("change-code",async (data)=>{
+    const {roomId,code}=data;
+    await codeChangeSocket(socket,roomId,code);
+  })
   socket.on("leave-room", (data) => {
     const { roomId, userId } = data;
     if (!roomId) return;
