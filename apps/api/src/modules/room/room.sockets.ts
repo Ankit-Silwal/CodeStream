@@ -1,7 +1,8 @@
 import type { Server, Socket } from "socket.io";
+import { loadContentSocket } from "../content/content.socket.js";
 
 export function setupRoomSockets(io: Server, socket: Socket) {
-  socket.on("join-room", (data) => {
+  socket.on("join-room", async (data) => {
     const { roomId, userId } = data;
     
     if (!roomId) {
@@ -9,7 +10,7 @@ export function setupRoomSockets(io: Server, socket: Socket) {
     }
     socket.join(roomId);
     console.log(`User ${userId || socket.id} joined room ${roomId}`);
-
+    await loadContentSocket(socket,roomId)
     socket.to(roomId).emit("user-joined", {
       userId: userId || socket.id,
       message: `A new user joined the room`

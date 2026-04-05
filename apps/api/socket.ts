@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import type { Server as HTTPServer } from "node:http";
-import { setupRoomSockets } from "../modules/room/room.sockets.js";
+import { setupRoomSockets } from "./src/modules/room/room.sockets.js";
 
 let io: Server;
 
