@@ -1,6 +1,5 @@
-import { loadContent } from "./content.manager.js";
+import { applyCodeChange, loadContent } from "./content.manager.js";
 import type { Socket } from "socket.io";
-import { redis } from "@repo/shared";
 import { debounceSave } from "./content.debounce.js";
 import { codeQueue } from "../../configs/queue.js";
 export async function loadContentSocket(socket:Socket,roomId:string){
@@ -20,13 +19,11 @@ export async function codeChangeSocket(socket:Socket,roomId:string,code:string){
     if(!roomId || typeof code!=="string"){
       return socket.emit("error",{message:"Invalid code-change payload"})
     }
-    const key=`doc:${roomId}`;
-    console.log("Code update is working for code",code)
-    await redis.set(key,code);
+    const result=await applyCodeChange(roomId,code);
     debounceSave(roomId,async ()=>{
-      await codeQueue.add("save-code",{roomId})
+      await codeQueue.add("save-code",{roomId}) 
     })
-    socket.to(roomId).emit("code-update",code);
+    socket.to(roomId).emit("code-update",result);
   }catch(err){
     console.error("Error in updating the code",err);
     socket.emit("error",{
