@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
-import { redis } from "@repo/shared";
+import { bullmqRedis } from "@repo/shared";
 
 export const codeQueue=new Queue("code-save",{
-  connection:redis
+  connection:bullmqRedis
 })

@@ -30,5 +30,6 @@ CREATE TABLE room_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
+  version Integer Unique,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
