@@ -1,4 +1,4 @@
-import { pool } from "@repo/shared";
+import { pool, redis } from "@repo/shared";
 import type { createRoomInput } from "./room.types.js";
 
 export async function createRoomService(data: createRoomInput) {
@@ -48,4 +48,23 @@ export async function changeOwnerService(roomId: string, newOwnerId: string) {
     WHERE id = $2
     `, [newOwnerId, roomId]
   );
+}
+
+export async function roomExists(roomId: string): Promise<boolean>
+{
+  const redisCheck = await redis.get(`room:${roomId}:exists`);
+  if (redisCheck)
+  {
+    return true;
+  }
+  const dbCheck = await pool.query(
+    `SELECT 1 FROM rooms WHERE id = $1`,
+    [roomId]
+  );
+
+  if (dbCheck.rowCount === 0)
+  {
+    return false;
+  }  await redis.set(`room:${roomId}:exists`, "1");
+  return true;
 }
