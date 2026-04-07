@@ -1,159 +1,119 @@
-# Turborepo starter
+# CodeStream
 
-This Turborepo starter is maintained by the Turborepo core team.
+CodeStream is a collaborative coding workspace built as a Turborepo monorepo with:
 
-## Using this example
+- `apps/web`: Next.js frontend
+- `apps/api`: Express + Socket.IO backend
+- `apps/worker`: BullMQ worker for background snapshot persistence
+- `packages/shared`: shared Postgres and Redis clients
+- `packages/ui`: shared UI components
 
-Run the following command:
+## Tech Stack
 
-```sh
-npx create-turbo@latest
+- Node.js 18+
+- TypeScript
+- Turborepo
+- Next.js (App Router)
+- Express + Socket.IO
+- PostgreSQL
+- Redis + BullMQ
+
+## Monorepo Layout
+
+```text
+apps/
+	api/      Backend REST + socket server (port 5000)
+	web/      Frontend app (port 3000)
+	worker/   Queue worker for code snapshot saves
+packages/
+	shared/   DB/Redis connection layer
+	ui/       Shared components
+	eslint-config/
+	typescript-config/
 ```
 
-## What's inside?
+## Prerequisites
 
-This Turborepo includes the following packages/apps:
+1. Node.js `>=18`
+2. npm (workspace root uses `npm@11.6.1`)
+3. Docker (recommended for local Postgres + Redis)
 
-### Apps and Packages
+## Local Setup
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+1. Install dependencies:
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+npm install
 ```
 
-Without global `turbo`, use your package manager:
+2. Start infrastructure:
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+docker compose up -d
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+This starts:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- Redis at `localhost:6969`
+- Postgres at `localhost:2222`
 
-```sh
-turbo build --filter=docs
+3. Configure environment variables.
+
+At minimum, backend/services require:
+
+```env
+PORT=5000
+FPORT=3000
+
+JWT_SECRET=your-jwt-secret
+
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
+
+DB_URL=postgresql://postgres:postgres@localhost:2222/codestream
+REDIS_URL=redis://localhost:6969
 ```
 
-Without global `turbo`:
+4. Start all apps in dev mode:
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+npm run dev
 ```
 
-### Develop
+## Useful Commands
 
-To develop all apps and packages, run the following command:
+From repo root:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- `npm run dev`: run all dev tasks through Turborepo
+- `npm run build`: build all packages/apps
+- `npm run lint`: lint all packages/apps
+- `npm run check-types`: run type checks across workspace
+- `npm run format`: run Prettier over ts/tsx/md files
 
-```sh
-cd my-turborepo
-turbo dev
+Target a specific app using Turbo filters:
+
+```bash
+npx turbo run dev --filter=web
+npx turbo run dev --filter=api
+npx turbo run dev --filter=worker
 ```
 
-Without global `turbo`, use your package manager:
+## Runtime Architecture
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+1. User authenticates with Google via backend `/auth/google`.
+2. Backend redirects to frontend with JWT query token.
+3. Frontend includes JWT in `Authorization: Bearer <token>` for protected REST calls.
+4. For collaboration, frontend joins a room over Socket.IO.
+5. Backend applies code changes to Redis and emits updates to room participants.
+6. Worker consumes BullMQ jobs and persists snapshot versions into Postgres.
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## API and Schema Docs
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- REST and socket details: `docs.md`
+- SQL schema reference: `apps/api/table.md`
 
-```sh
-turbo dev --filter=web
-```
+## Notes
 
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- CORS is currently permissive (`origin: "*"`) for local development.
+- Authentication is required for all `/room` REST endpoints.

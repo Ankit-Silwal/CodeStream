@@ -1,75 +1,217 @@
-# CodeStream API Documentation
+# CodeStream API and Socket Documentation
 
-This document offers an overview of the REST API endpoints and available functions developed so far for the CodeStream application.
+This file documents the backend behavior implemented in `apps/api`.
+
+Base URL (local): `http://localhost:5000`
+
+## Health
+
+### GET `/health`
+
+Response:
+
+```json
+{
+  "success": true
+}
+```
 
 ## Authentication Routes
 
-Base Path: `/auth`
+Base path: `/auth`
 
-### 1. Initiate Google Login
-- **Endpoint**: `GET /auth/google`
-- **Description**: Initiates the Google OAuth2 login flow. Scopes include `profile` and `email`.
+### GET `/auth/google`
 
-### 2. Google OAuth Callback
-- **Endpoint**: `GET /auth/google/callback`
-- **Description**: Handles the callback from Google OAuth2. 
-- **Response**: Upon successful authentication, it redirects the user back to the frontend (e.g., `http://localhost:3000/?token=<JWT_TOKEN>`) with a generated JWT token as a url parameter.
+Starts Google OAuth flow with scopes `profile` and `email`.
 
-### 3. Get Current User
-- **Endpoint**: `GET /auth/me`
-- **Authentication**: Required (Requires a valid JWT token).
-- **Description**: Returns the details of the currently authenticated user.
-- **Response**: JSON string indicating successful authentication and user information.
+### GET `/auth/google/callback`
 
----
+Handles OAuth callback and redirects to frontend with a JWT query param:
 
-## Room Management Routes
+`http://localhost:<FPORT>?token=<JWT_TOKEN>`
 
-Base Path: `/room`  
-**All endpoints require authentication (Valid JWT token).**
+### GET `/auth/me`
 
-### 1. Create a Room
-- **Endpoint**: `POST /room/`
-- **Description**: Creates a new code room/session and sets the creator as the initial `owner` in the `room_participants` table.
-- **Body payload**:
-  ```json
-  {
-    "name": "My Code Room",
-    "language": "java", // optional, defaults to 'java'
-    "is_private": false // optional, defaults to false
+Requires header: `Authorization: Bearer <token>`
+
+Response:
+
+```json
+{
+  "message": "You are authenticated ",
+  "user": {
+    "id": "...",
+    "email": "...",
+    "name": "..."
   }
-  ```
-- **Response**: Returns the created room details.
+}
+```
 
-### 2. Leave an Existing Room
-- **Endpoint**: `DELETE /room/`
-- **Description**: Removes the current logged-in user from the specified room. Room Owners cannot leave unless they pass the ownership of the room.
-- **Body payload**:
-  ```json
-  {
-    "roomId": "room-uuid"
-  }
-  ```
+## Room Routes
 
-### 3. Add a Member to a Room
-- **Endpoint**: `POST /room/add`
-- **Description**: Adds another user to the room. If the room is private, only the owner can add members.
-- **Body payload**:
-  ```json
-  {
-    "roomId": "room-uuid",
-    "targetUserId": "user-uuid",
-    "role": "editor" // 'viewer' or 'editor' or 'owner' (optional, defaults to 'editor')
-  }
-  ```
+Base path: `/room`
 
-### 4. Change Room Ownership
-- **Endpoint**: `POST /room/changeOwner`
-- **Description**: Transfers the room ownership from the current owner to another member (Not fully detailed yet, but route is provided in `room.controller.ts`).
-- **Body payload**:
-  ```json
-  {
-    "roomId": "room-uuid",
-    "newOwnerId": "user-uuid"
+All room routes require a valid Bearer token.
+
+### POST `/room/`
+
+Create room.
+
+Request body:
+
+```json
+{
+  "name": "My Code Room",
+  "language": "java",
+  "is_private": false
+}
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "My Code Room"
   }
-  ```
+}
+```
+
+### DELETE `/room/`
+
+Leave room.
+
+Request body:
+
+```json
+{
+  "roomId": "room-uuid"
+}
+```
+
+Notes:
+
+- Room owners cannot leave until ownership is transferred.
+
+### POST `/room/add`
+
+Add member.
+
+Request body:
+
+```json
+{
+  "roomId": "room-uuid",
+  "targetUserId": "user-uuid",
+  "role": "editor"
+}
+```
+
+Notes:
+
+- For private rooms, only owner can add members.
+
+### POST `/room/changeOwner`
+
+Transfer ownership.
+
+Request body:
+
+```json
+{
+  "roomId": "room-uuid",
+  "newOwnerId": "user-uuid"
+}
+```
+
+## Socket Events
+
+Socket server shares the same host/port as backend (`http://localhost:5000`).
+
+### Client -> Server
+
+- `join-room`
+
+```json
+{
+  "roomId": "room-uuid",
+  "userId": "user-uuid"
+}
+```
+
+- `code-update`
+
+```json
+{
+  "roomId": "room-uuid",
+  "code": "...latest source..."
+}
+```
+
+- `leave-room`
+
+```json
+{
+  "roomId": "room-uuid",
+  "userId": "user-uuid"
+}
+```
+
+### Server -> Client
+
+- `init-code`
+
+```json
+{
+  "code": "...current room code...",
+  "version": 1
+}
+```
+
+- `code-update`
+
+```json
+{
+  "code": "...updated room code...",
+  "version": 2
+}
+```
+
+- `user-joined`
+
+```json
+{
+  "userId": "user-uuid",
+  "message": "A new user joined the room"
+}
+```
+
+- `user-left`
+
+```json
+{
+  "userId": "user-uuid"
+}
+```
+
+- `error`
+
+```json
+{
+  "message": "Error description"
+}
+```
+
+## Persistence Flow (Code Sync)
+
+1. `code-update` is validated and applied to Redis.
+2. Backend emits latest code payload to other room clients.
+3. A debounced BullMQ job (`code-save`) is queued.
+4. Worker writes snapshot to `room_snapshots` with version checks.
+
+## Related Docs
+
+- Database schema: `apps/api/table.md`
+- Project setup: `README.md`

@@ -1,3 +1,10 @@
+# CodeStream Database Schema
+
+This schema is designed for PostgreSQL and supports authentication, collaborative rooms, memberships, and versioned code snapshots.
+
+## Tables
+
+```sql
 CREATE TABLE users (
   id uuid PRIMARY KEY default gen_random_uuid(),
   google_id TEXT UNIQUE,
@@ -33,3 +40,11 @@ CREATE TABLE room_snapshots (
   version Integer Unique,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
+
+## Notes
+
+- `rooms.owner_id` references `users.id`.
+- `room_participants` enforces unique user-per-room membership via `UNIQUE(room_id, user_id)`.
+- `room_snapshots.version` is currently globally unique.
+- Worker persistence logic inserts into `room_snapshots` only when incoming version is newer than the latest saved version for that room.

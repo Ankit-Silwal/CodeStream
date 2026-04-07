@@ -8,6 +8,9 @@ export default function Page()
     name:string,
     email:string
   }
+  type CodePayload={
+    code:string
+  }
   const [user,setUser]=useState<User|null>(null);
   const [roomId,setRoomId]=useState<string>("");
   const [joined,setJoined]=useState<boolean>(false);
@@ -39,11 +42,11 @@ export default function Page()
         roomId,
         userId:user?.id
       })
-      socket.on("init-code",(incomingCode:string)=>{
-        setCode(incomingCode)
+      socket.on("init-code",(data:CodePayload)=>{
+        setCode(data.code)
       })
-      socket.on("code-update",(incomingCode:string)=>{
-        setCode(incomingCode)
+      socket.on("code-update",(data:CodePayload)=>{
+        setCode(data.code)
       })
       return ()=>{
         socket.off("connect")
