@@ -2,13 +2,14 @@ import type { Server, Socket } from "socket.io";
 import { codeChangeSocket, loadContentSocket } from "../content/content.socket.js";
 import { roomExists } from "./room.services.js";
 import { redis } from "@repo/shared";
+import { validate as isUUID } from "uuid";
 
 export function setupRoomSockets(io: Server, socket: Socket) {
   socket.on("join-room", async (data) => {
     const { roomId, userId } = data;
     
-    if (!roomId) {
-      return socket.emit("error", { message: "Room ID is required to join" });
+    if (!roomId || !isUUID(roomId)) {
+      return socket.emit("error", { message: "Room ID isn't valid" });
     }
     const exists=await roomExists(roomId)
     if(!exists){
@@ -28,6 +29,17 @@ export function setupRoomSockets(io: Server, socket: Socket) {
   });
   socket.on("code-update",async (data)=>{
     const {roomId,code}=data;
+    if(!roomId || !isUUID(roomId)){
+      return socket.emit("error",{
+        message:"RoomId should be of correct"
+      })
+    }
+    const exits=await roomExists(roomId)
+    if(!exits){
+      socket.emit("error",{
+        message:"The room was deleted"
+      })
+    }
     await codeChangeSocket(socket,roomId,code);
   })
   socket.on("leave-room", (data) => {

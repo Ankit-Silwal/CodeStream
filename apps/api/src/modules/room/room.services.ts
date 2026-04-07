@@ -1,6 +1,5 @@
 import { pool, redis } from "@repo/shared";
 import type { createRoomInput } from "./room.types.js";
-
 export async function createRoomService(data: createRoomInput) {
   const res=await pool.query(
     `
