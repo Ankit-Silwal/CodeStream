@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 
 export default function Home()
 {
   const [user, setUser] = useState<any>(null);
 
-  // 🔍 Extract token & Fetch user
   useEffect(() =>
   {
     const params = new URLSearchParams(window.location.search);
@@ -46,16 +45,13 @@ export default function Home()
         <button
           onClick={() =>
           {
-            window.location.href = "http://localhost:5000/auth/google";
+            globalThis.location.href = "http://localhost:5000/auth/google";
           }}
         >
           Login with Google
         </button>
       ) : (
         <div>
-          <h2>Logged in ✅</h2>
-          <pre>{JSON.stringify(user, null, 2)}</pre>
-
           <button
             onClick={() =>
             {
@@ -64,6 +60,14 @@ export default function Home()
             }}
           >
             Logout
+          </button>
+          <button
+            onClick={() =>
+            {
+              globalThis.location.href = "/test";
+            }}
+          >
+            Join Testing room
           </button>
         </div>
       )}
