@@ -1,5 +1,5 @@
 import type { Server, Socket } from "socket.io";
-import { codeChangeSocket, loadContentSocket } from "../content/content.socket.js";
+import { codeChangeSocket, cursorUpdateSocket, loadContentSocket } from "../content/content.socket.js";
 import { roomExists } from "./room.services.js";
 import { redis } from "@repo/shared";
 import { validate as isUUID } from "uuid";
@@ -11,6 +11,7 @@ export function setupRoomSockets(io: Server, socket: Socket) {
     if (!roomId || !isUUID(roomId)) {
       return socket.emit("error", { message: "Room ID isn't valid" });
     }
+    
     const exists=await roomExists(roomId)
     if(!exists){
       socket.emit("error",{
@@ -19,6 +20,7 @@ export function setupRoomSockets(io: Server, socket: Socket) {
       return;
     }
     socket.join(roomId);
+    await redis.sadd(`room:${roomId}:users`,socket.id)
     await redis.setnx(`room:${roomId}:exists`,"1");
     console.log(`User ${userId || socket.id} joined room ${roomId}`);
     await loadContentSocket(socket,roomId)
@@ -42,10 +44,20 @@ export function setupRoomSockets(io: Server, socket: Socket) {
     }
     await codeChangeSocket(socket,roomId,code);
   })
-  socket.on("leave-room", (data) => {
+  socket.on("cursor-update",async (data)=>{
+    const {roomId,line,column}=data;
+    if(!roomId || !line ||!column){
+      return socket.emit("error",{
+        message:"Cursor update payload error"
+      })
+    }
+    await cursorUpdateSocket(socket,roomId,line,column);
+  })
+  socket.on("leave-room", async (data) => {
     const { roomId, userId } = data;
     if (!roomId) return;
     socket.leave(roomId);
+    await redis.srem(`room:${roomId}:users`,socket.id)
     console.log(`User ${userId || socket.id} left room ${roomId}`);
     socket.to(roomId).emit("user-left", {
       userId: userId || socket.id,

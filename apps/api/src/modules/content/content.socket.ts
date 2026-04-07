@@ -31,3 +31,23 @@ export async function codeChangeSocket(socket:Socket,roomId:string,code:string){
     })
   }
 }
+
+export async function cursorUpdateSocket(socket:Socket,roomId:string,line:number,column:number){
+  try{
+    if(!roomId ){
+      return;
+    }
+    if(!socket.rooms.has(roomId)){
+      return;
+    }
+    socket.to(roomId).emit("cursor-update",{
+      socketId:socket.id,
+      line,
+      column
+    })
+  }catch(err){
+    socket.emit("error",{
+      err:`${err}`
+    })
+  }
+}
