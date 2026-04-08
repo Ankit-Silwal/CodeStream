@@ -67,3 +67,15 @@ export async function roomExists(roomId: string): Promise<boolean>
   }  await redis.set(`room:${roomId}:exists`, "1");
   return true;
 }
+
+export async function getAllRoomsService(userId: string) {
+  const result = await pool.query(
+    `
+    SELECT r.* 
+    FROM rooms r
+    JOIN room_participants rp ON r.id = rp.room_id
+    WHERE rp.user_id = $1
+    `, [userId]
+  );
+  return result.rows;
+}

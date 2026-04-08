@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { createRoomService, leaveRoomService, addMemberService, changeOwnerService } from "./room.services.js";
+import { createRoomService, leaveRoomService, addMemberService, changeOwnerService, getAllRoomsService } from "./room.services.js";
 import { pool } from "@repo/shared";
 
 export async function createRoom(req: Request, res: Response) {
@@ -116,6 +116,22 @@ export async function changeOwner(req: Request, res: Response) {
     `, [roomId, newOwnerId]);
 
     return res.status(200).json({ success: true, message: "Ownership transferred successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+}
+
+export async function getAllRooms(req: Request, res: Response) {
+  const userId = req.userId;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  try {
+    const rooms = await getAllRoomsService(userId);
+    return res.status(200).json({ success: true, data: rooms });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Internal server error" });
