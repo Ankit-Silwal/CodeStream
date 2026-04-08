@@ -1,0 +1,1 @@
+const fs = require('fs'); let code = fs.readFileSync('apps/web/app/dashboard/page.tsx', 'utf8'); code = code.replace(/\
