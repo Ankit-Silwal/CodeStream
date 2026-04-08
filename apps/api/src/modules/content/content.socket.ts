@@ -20,9 +20,15 @@ export async function codeChangeSocket(socket:Socket,roomId:string,code:string){
       return socket.emit("error",{message:"Invalid code-change payload"})
     }
     const result=await applyCodeChange(roomId,code);
-    debounceSave(roomId,async ()=>{
+    
+    if (result.version % 10 === 0) {
       await codeQueue.add("save-code",{roomId}) 
-    })
+    } else {
+      debounceSave(roomId,async ()=>{
+        await codeQueue.add("save-code",{roomId}) 
+      })
+    }
+    
     socket.to(roomId).emit("code-update",result);
   }catch(err){
     console.error("Error in updating the code",err);

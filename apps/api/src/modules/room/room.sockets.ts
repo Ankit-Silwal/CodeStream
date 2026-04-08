@@ -1,7 +1,7 @@
 import type { Server, Socket } from "socket.io";
 import { codeChangeSocket, cursorUpdateSocket, loadContentSocket } from "../content/content.socket.js";
 import { roomExists } from "./room.services.js";
-import { redis } from "@repo/shared";
+import { pool, redis } from "@repo/shared";
 import { validate as isUUID } from "uuid";
 
 export function setupRoomSockets(io: Server, socket: Socket) {
@@ -18,6 +18,16 @@ export function setupRoomSockets(io: Server, socket: Socket) {
         message:"Room not found"
       })
       return;
+    }
+    const doc=await redis.get(`doc:${roomId}`)
+    if(!doc){
+      const snapshot=await pool.query(`
+        select content,version from room_snapshots where room_id=$1
+        order by version desc
+        limit 1`,[roomId])
+      const code=snapshot.rows[0].content;
+      const version=snapshot.rows[0].version;
+      await redis.set(`doc:${roomId}`,JSON.stringify({code,version}))
     }
     socket.join(roomId);
     await redis.sadd(`room:${roomId}:users`,socket.id)
@@ -41,6 +51,7 @@ export function setupRoomSockets(io: Server, socket: Socket) {
       socket.emit("error",{
         message:"The room was deleted"
       })
+      return;
     }
     await codeChangeSocket(socket,roomId,code);
   })
