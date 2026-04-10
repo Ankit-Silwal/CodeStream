@@ -31,7 +31,6 @@ export function RoomCard({ room, isLoggedIn }: RoomCardProps) {
         </span>
       </div>
       <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>{room.name}</div>
-      <div style={{ fontSize: "12px", color: "var(--muted)", lineHeight: "1.5", marginBottom: "12px" }}>{room.description}</div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div style={{ display: "flex" }}>

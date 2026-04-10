@@ -5,7 +5,6 @@ import React, { useState } from "react";
 export type CreateRoomPayload={
   name:string;
   language:string;
-  description:string;
   visibility:string;
 }
 
@@ -18,7 +17,6 @@ interface CreateRoomModalProps {
 export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalProps){
   const [createRoomName, setCreateRoomName] = useState("");
   const [createRoomLanguage, setCreateRoomLanguage] = useState("JS");
-  const [createRoomDesc, setCreateRoomDesc] = useState("");
   const [createVisibility, setCreateVisibility] = useState("Public");
 
   if (!isOpen) return null;
@@ -27,11 +25,9 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
     onCreate({
       name: createRoomName,
       language: createRoomLanguage,
-      description: createRoomDesc,
       visibility: createVisibility
     });
     setCreateRoomName("");
-    setCreateRoomDesc("");
     setCreateRoomLanguage("JS");
     setCreateVisibility("Public");
   };
@@ -63,8 +59,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
                 </div>
               </div>
               <div style={{ marginBottom: "16px" }}>
-                <label style={labelStyle}>Description <span style={{ fontWeight: "400", color: "#8c959f" }}>(optional)</span></label>
-                <input value={createRoomDesc} onChange={(e) => setCreateRoomDesc(e.target.value)} placeholder="What are you building?" style={inputStyle} />
+
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                 <button onClick={() => onClose()} style={btnStyle}>Cancel</button>

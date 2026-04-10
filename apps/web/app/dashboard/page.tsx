@@ -6,21 +6,25 @@ import { CreateRoomModal, CreateRoomPayload } from "../../components/dashboard/C
 import { Stats } from "../../components/dashboard/Stats";
 import { AppSidebar as Sidebar } from "../../components/dashboard/AppSidebar";
 import { RoomGrid } from "../../components/dashboard/RoomGrid";
+import { api } from "../../lib/api";
 
-const MOCK_ROOMS = [
-  { id: "1", name: "React Developers Group", language: "JS", description: "Working on a new dashboard component with hooks and context API.", members: 3, status: "live" },
-  { id: "2", name: "Node.js Backend Collab", language: "TS", description: "Setting up an Express API with WebSockets and JWT authentication.", members: 2, status: "live" },
-  { id: "3", name: "Python Data Science", language: "PY", description: "Analyzing pandemic datasets and building visualizations with pandas.", members: 5, status: "live" },
-  { id: "4", name: "Go Microservices", language: "GO", description: "Building a distributed tracing system with OpenTelemetry.", members: 1, status: "idle" },
-  { id: "5", name: "Rust Systems Club", language: "RS", description: "Exploring async runtimes, ownership patterns, and performance tuning.", members: 2, status: "idle" },
-];
+export interface Room {
+  id: string;
+  name: string;
+  language: string;
+  members: number;
+  status: string;
+}
 
 export default function Dashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ name?: string } | null>(null);
-  const [rooms, setRooms] = useState(MOCK_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loadingRooms,setLoadingRooms]=useState<boolean>(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joining,setJoining]=useState<boolean>(false);
+  const [joinError,setJoinError]=useState<string>("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -34,6 +38,23 @@ export default function Dashboard() {
       })
       .catch(() => {});
   }, []);
+  useEffect(()=>{
+    const fetchRooms=async ()=>{
+      try{
+        const res=await api.get('/room/all');
+        if (res.data?.data) {
+          setRooms(res.data.data);
+        } else {
+          setRooms([]);
+        }
+      }catch(err){
+        console.error("Error occred as",err);
+      }finally{
+        setLoadingRooms(false);
+      }
+    };
+    fetchRooms();
+  },[])
 
   const handleLogin = () => { globalThis.location.href = "http://localhost:5000/auth/google"; };
   const handleLogout = () => { localStorage.removeItem("token"); setUser(null); setIsLoggedIn(false); };
@@ -44,7 +65,6 @@ export default function Dashboard() {
       id: Date.now().toString(),
       name: data.name,
       language: data.language,
-      description: data.description || "No description provided.",
       members: 1,
       status: "live",
     }]);
@@ -57,7 +77,7 @@ export default function Dashboard() {
   };
 
   const activeRooms = rooms.filter((r) => r.status === "live").length;
-  const totalMembers = rooms.reduce((acc, r) => acc + r.members, 0);
+  const totalMembers = rooms.reduce((acc, r) => acc + (r.members || 0), 0);
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", margin: 0, padding: 0, backgroundColor: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>      <style dangerouslySetInnerHTML={{__html: `

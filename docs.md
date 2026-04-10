@@ -53,6 +53,26 @@ Base path: `/room`
 
 All room routes require a valid Bearer token.
 
+### GET `/room/all`
+
+Get all rooms accessible to the authenticated user.
+
+Success response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "room-uuid",
+      "name": "My Code Room",
+      "language": "java",
+      "owner_id": "user-uuid"
+    }
+  ]
+}
+```
+
 ### POST `/room/`
 
 Create room.
