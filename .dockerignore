@@ -1,0 +1,37 @@
+# dependencies
+node_modules
+**/node_modules
+
+# build outputs
+dist
+build
+.next
+.turbo
+
+# logs
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# git
+.git
+.gitignore
+
+# env files (IMPORTANT)
+.env
+.env.*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode
+.idea
+
+# docker files (optional)
+docker-compose.yml
+
+# temp
+tmp
+temp

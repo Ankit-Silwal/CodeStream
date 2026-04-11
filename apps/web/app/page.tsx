@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -14,13 +14,20 @@ export default function Home() {
       localStorage.setItem("token", token);
       globalThis.history.replaceState({}, document.title, "/");
     }
-
-    router.push("/dashboard");
+        router.replace("/dashboard");
   }, [router, searchParams]);
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <p>Redirecting to dashboard...</p>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div style={{ padding: "2rem", fontFamily: "sans-serif" }}><p>Loading...</p></div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
