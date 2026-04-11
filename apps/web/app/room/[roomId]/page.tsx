@@ -13,19 +13,34 @@ export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
   const isRemoteUpdate = useRef(false);
-  const handleEditorChange = (value: string) =>
-{
-  if (isRemoteUpdate.current)
-  {
-    isRemoteUpdate.current = false;
-    return;
-  }
 
-  socket.emit("code-update", {
-    roomId,
-    code: value,
-  });
-};
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
+
+  const handleEditorChange = (value: string) => {
+    if (isRemoteUpdate.current) {
+      isRemoteUpdate.current = false;
+      return;
+    }
+
+    socket.emit("code-update", {
+      roomId,
+      code: value,
+    });
+  };
+
+  const handleCursorChange = (line: number, column: number) => {
+    socket.emit("cursor-update", {
+      roomId,
+      line,
+      column,
+    });
+  };
+
   const roomId = params.roomId as string;
   useEffect(() => {
     if (!roomId) return;
@@ -40,18 +55,44 @@ export default function RoomPage() {
       setVersion(data.version);
       setLoading(false)
     })
-    socket.on("code-update",(data)=>{
-      setCode((prev)=>{
-        if(data.version<=version) return prev;
-        setVersion(data.version)
+    socket.on("code-update", (data) => {
+      setCode((prev) => {
+        if (data.version <= version) return prev;
+        setVersion(data.version);
         return data.code;
-      })
-    })
+      });
+    });
+    socket.on("cursor-update", (data) => {
+      console.log("Remote cursor update:", data);
+      // Here you can set state to render other users' cursors securely
+    });
     socket.on("error", (err) => {
       setError(err.message);
       setLoading(false);
     });
   }, [roomId, version]);
+//   useEffect(() => {
+//   const interval = setInterval(() => {
+//     const randomLetter = String.fromCharCode(
+//       97 + Math.floor(Math.random() * 26)
+//     );
+
+//     isRemoteUpdate.current = true;
+
+//     setCode((prev) => {
+//       const updated = prev + randomLetter;
+
+//       socket.emit("code-update", {
+//         roomId,
+//         code: updated,
+//       });
+
+//       return updated;
+//     });
+//   }, 1000);
+
+//   return () => clearInterval(interval);
+// }, [roomId]);
 
   useEffect(() => {
     if (error) {
@@ -69,7 +110,9 @@ export default function RoomPage() {
   }
   return (
     <MonacoEditor
-    code={code}
-    onChange={handleEditorChange}></MonacoEditor>
+      code={code}
+      onChange={handleEditorChange}
+      onCursorChange={handleCursorChange}
+    />
   );
 }

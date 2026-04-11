@@ -25,8 +25,10 @@ export function setupRoomSockets(io: Server, socket: Socket) {
         select content,version from room_snapshots where room_id=$1
         order by version desc
         limit 1`,[roomId])
-      const code=snapshot.rows[0].content;
-      const version=snapshot.rows[0].version;
+      
+      const code = snapshot.rows.length > 0 ? snapshot.rows[0].content : "";
+      const version = snapshot.rows.length > 0 ? snapshot.rows[0].version : 1;
+      
       await redis.set(`doc:${roomId}`,JSON.stringify({code,version}))
     }
     socket.join(roomId);

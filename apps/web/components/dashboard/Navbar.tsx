@@ -26,7 +26,7 @@ export function Navbar({
             </div>
             <span style={{ fontSize: "15px", fontWeight: "600", color: "white" }}>CodeStream</span>
           </div>
-          {["Dashboard", "Explore", "Docs"].map((link) => (
+          {["Dashboard"].map((link) => (
             <button key={link}
               style={{ background: "none", border: "none", color: "#e6edf3", fontSize: "14px", cursor: "pointer", padding: "4px 8px", borderRadius: "6px", fontWeight: link === "Dashboard" ? "600" : "400" }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)")}

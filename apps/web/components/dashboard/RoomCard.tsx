@@ -14,12 +14,15 @@ const AVATAR_COLORS = ["#1f6feb", "#2da44e", "#6e40c9", "#cf222e", "#0550ae", "#
 interface RoomCardProps {
   room: Room;
   isLoggedIn: boolean;
+  onJoin: () => void;
+  onLeave?: () => void;
 }
 
-export function RoomCard({ room, isLoggedIn }: RoomCardProps) {
+export function RoomCard({ room, isLoggedIn, onJoin, onLeave }: RoomCardProps) {
   const lang = LANG_COLORS[room.language] ?? { bg: "#f6f8fa", color: "var(--muted)" };
   return (
     <div
+      onClick={() => { if (isLoggedIn) onJoin(); }}
       style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", cursor: isLoggedIn ? "pointer" : "default", transition: "border-color 0.15s, box-shadow 0.15s" }}
       onMouseEnter={(e) => { if (isLoggedIn) { e.currentTarget.style.borderColor = "#0969da"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)"; } }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#d0d7de"; e.currentTarget.style.boxShadow = "none"; }}
@@ -42,12 +45,31 @@ export function RoomCard({ room, isLoggedIn }: RoomCardProps) {
           </div>
           <span style={{ fontSize: "11px", color: "var(--muted)" }}>{room.members} dev{room.members !== 1 ? "s" : ""}</span>
         </div>
-        <button
-          disabled={!isLoggedIn}
-          style={{ fontSize: "12px", padding: "4px 12px", borderRadius: "6px", border: "1px solid var(--border)", background: "transparent", color: isLoggedIn ? "#1f2328" : "#8c959f", cursor: isLoggedIn ? "pointer" : "not-allowed", fontWeight: "500" }}
-          onMouseEnter={(e) => { if (isLoggedIn) { e.currentTarget.style.backgroundColor = "#f6f8fa"; e.currentTarget.style.borderColor = "#0969da"; e.currentTarget.style.color = "#0969da"; } }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.borderColor = "#d0d7de"; e.currentTarget.style.color = isLoggedIn ? "#1f2328" : "#8c959f"; }}
-        >Join</button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {onLeave && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLeave();
+              }}
+              style={{ fontSize: "12px", padding: "4px 12px", borderRadius: "6px", border: "1px solid #ff818266", background: "#ffebe9", color: "#cf222e", cursor: "pointer", fontWeight: "500" }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#ffdddd"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffebe9"; }}
+            >
+              Leave
+            </button>
+          )}
+          <button
+            disabled={!isLoggedIn}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isLoggedIn) onJoin();
+            }}
+            style={{ fontSize: "12px", padding: "4px 12px", borderRadius: "6px", border: "1px solid var(--border)", background: "transparent", color: isLoggedIn ? "#1f2328" : "#8c959f", cursor: isLoggedIn ? "pointer" : "not-allowed", fontWeight: "500" }}
+            onMouseEnter={(e) => { if (isLoggedIn) { e.currentTarget.style.backgroundColor = "#f6f8fa"; e.currentTarget.style.borderColor = "#0969da"; e.currentTarget.style.color = "#0969da"; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.borderColor = "#d0d7de"; e.currentTarget.style.color = isLoggedIn ? "#1f2328" : "#8c959f"; }}
+          >Join</button>
+        </div>
       </div>
     </div>
   );

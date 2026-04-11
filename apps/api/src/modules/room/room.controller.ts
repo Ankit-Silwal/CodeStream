@@ -43,10 +43,12 @@ export async function leaveRoom(req:Request,res:Response){
     `,[req.userId,roomId]
   )
   if(check.rows.length>0){
-    return res.status(400).json({
-      success:false,
-      message:"Pass on owner to before leaving"
-    })
+    // If the user is the owner, we will just delete the room completely
+    await pool.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+    return res.status(200).json({
+      success: true,
+      message: "Room deleted completely"
+    });
   }
 
   await leaveRoomService(req.userId as string, roomId);

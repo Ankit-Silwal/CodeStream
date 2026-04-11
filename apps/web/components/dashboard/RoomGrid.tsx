@@ -6,9 +6,11 @@ interface RoomGridProps {
   rooms: Room[];
   isLoggedIn: boolean;
   onOpenCreate: () => void;
+  onJoinRoom: (roomId: string) => void;
+  onLeaveRoom?: (roomId: string) => void;
 }
 
-export function RoomGrid({ rooms, isLoggedIn, onOpenCreate }: RoomGridProps) {
+export function RoomGrid({ rooms, isLoggedIn, onOpenCreate, onJoinRoom, onLeaveRoom }: RoomGridProps) {
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
@@ -18,7 +20,13 @@ export function RoomGrid({ rooms, isLoggedIn, onOpenCreate }: RoomGridProps) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
         {rooms.map((room) => (
-          <RoomCard key={room.id} room={room} isLoggedIn={isLoggedIn} />
+          <RoomCard 
+            key={room.id} 
+            room={room} 
+            isLoggedIn={isLoggedIn} 
+            onJoin={() => onJoinRoom(room.id)} 
+            onLeave={onLeaveRoom ? () => onLeaveRoom(room.id) : undefined}
+          />
         ))}
 
         {isLoggedIn && (

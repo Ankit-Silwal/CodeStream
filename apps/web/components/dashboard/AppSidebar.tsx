@@ -1,4 +1,6 @@
+"use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 export interface Room {
   id: string;
@@ -13,6 +15,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ rooms }: AppSidebarProps) {
+  const router = useRouter();
+  
   const sidebarItemStyle: React.CSSProperties = {
     padding: "8px 12px",
     borderRadius: "6px",
@@ -38,6 +42,7 @@ export function AppSidebar({ rooms }: AppSidebarProps) {
         <h3 style={{ fontSize: "12px", fontWeight: "600", color: "#57606a", marginTop: "20px", marginBottom: "12px", textTransform: "uppercase" }}>Recent Rooms</h3>
         {rooms.slice(0, 5).map(r => (
           <div key={r.id} style={sidebarItemStyle}
+            onClick={() => router.push(`/room/${r.id}`)}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f6f8fa"; e.currentTarget.style.color = "#1f2328"; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#57606a"; }}>
             <span style={{ marginRight: "8px" }}>💬</span> {r.name}
