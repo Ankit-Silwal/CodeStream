@@ -88,7 +88,7 @@ export async function createExam(data: ExamInput) {
     }
 
     await client.query("COMMIT");
-    return getExam(exam.rows[0].id);
+    return getExam(exam.rows[0].id, data.teacherId, "teacher");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -97,7 +97,14 @@ export async function createExam(data: ExamInput) {
   }
 }
 
-export async function listExams(userId: string) {
+export async function listExams(userId: string, role: string) {
+  const whereClause =
+    role === "teacher"
+      ? "WHERE e.teacher_id = $1"
+      : role === "admin"
+        ? ""
+        : "WHERE e.status = 'active'";
+  const values = role === "teacher" ? [userId] : [];
   const result = await pool.query(
     `
     SELECT e.*,
@@ -105,18 +112,24 @@ export async function listExams(userId: string) {
       COALESCE(SUM(q.points), 0)::int AS total_marks
     FROM exams e
     LEFT JOIN exam_questions q ON q.exam_id = e.id
-    WHERE e.teacher_id = $1 OR e.status = 'active'
+    ${whereClause}
     GROUP BY e.id
     ORDER BY e.created_at DESC
     `,
-    [userId],
+    values,
   );
   return result.rows;
 }
 
-export async function getExam(examId: string) {
+export async function getExam(examId: string, userId?: string, role = "student") {
   const exam = await pool.query(`SELECT * FROM exams WHERE id = $1`, [examId]);
   if (exam.rows.length === 0) return null;
+  const row = exam.rows[0];
+  const canView =
+    role === "admin" ||
+    (role === "teacher" && row.teacher_id === userId) ||
+    (role === "student" && row.status === "active");
+  if (!canView) return null;
 
   const questions = await pool.query(
     `
@@ -132,7 +145,6 @@ export async function getExam(examId: string) {
     [examId],
   );
 
-  const row = exam.rows[0];
   return {
     id: row.id,
     title: row.title,

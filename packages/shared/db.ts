@@ -1,3 +1,4 @@
+import "./env.js";
 import {Pool} from "pg";
 const pool=new Pool({
   connectionString:process.env.DB_URL
@@ -6,6 +7,7 @@ const pool=new Pool({
 export const initDb = async () => {
   try {
     await pool.query(`
+      CREATE EXTENSION IF NOT EXISTS pgcrypto;
       CREATE TABLE IF NOT EXISTS users (
         id uuid PRIMARY KEY default gen_random_uuid(),
         google_id TEXT UNIQUE,
@@ -38,6 +40,18 @@ export const initDb = async () => {
         version Integer Unique,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'users_role_check'
+        ) THEN
+          ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'teacher', 'student')) NOT VALID;
+        END IF;
+      END $$;
       CREATE TABLE IF NOT EXISTS exams (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,

@@ -121,13 +121,13 @@ npm install
 2. Start infrastructure:
 
 ```bash
-docker compose up -d
+npm run infra:up
 ```
 
 This starts:
 
-- Redis at `localhost:6969`
-- Postgres at `localhost:2222`
+- Redis at `localhost:6379`
+- Postgres at `localhost:5432`
 
 3. Configure environment variables.
 
@@ -143,8 +143,8 @@ GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
 
-DB_URL=postgresql://postgres:postgres@localhost:2222/codestream
-REDIS_URL=redis://localhost:6969
+DB_URL=postgresql://postgres:postgres@localhost:5432/codestream
+REDIS_URL=redis://localhost:6379
 CORS_ORIGIN=http://localhost:3000
 API_RATE_LIMIT_PER_MINUTE=120
 ```
@@ -160,6 +160,8 @@ npm run dev
 From repo root:
 
 - `npm run dev`: run all dev tasks through Turborepo
+- `npm run infra:up`: start Redis and Postgres for local dev
+- `npm run infra:down`: stop the Docker Compose stack
 - `npm run build`: build all packages/apps
 - `npm run lint`: lint all packages/apps
 - `npm run check-types`: run type checks across workspace

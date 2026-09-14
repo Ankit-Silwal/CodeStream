@@ -3,24 +3,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   CheckCircle2,
   FileQuestion,
   Import,
+  LogIn,
+  LogOut,
   Plus,
   Save,
   ShieldAlert,
   Trash2,
 } from "lucide-react";
-import { api } from "../../lib/api";
+import { api, getApiErrorMessage } from "../../lib/api";
 import {
   emptyStarterCode,
   Exam,
   ExamLanguage,
   ExamQuestion,
   languages,
-  saveStoredExam,
 } from "../../lib/exam";
+import { clearSession, getSessionUser, saveSession } from "../../lib/auth";
 
 type AttemptReview = {
   examId: string;
@@ -62,8 +63,20 @@ export default function TeacherPage() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [attempts, setAttempts] = useState<AttemptReview[]>([]);
+  const [saveError, setSaveError] = useState("");
+  const [isTeacher, setIsTeacher] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(() => {
+    const user = getSessionUser();
+    if (!localStorage.getItem("token") || user?.role !== "teacher") {
+      return;
+    }
+    setIsTeacher(true);
+
     const reviews = Object.keys(localStorage)
       .filter((key) => key.startsWith("codestream-attempt-"))
       .map((key) => {
@@ -75,7 +88,7 @@ export default function TeacherPage() {
       })
       .filter((item): item is AttemptReview => Boolean(item));
     setAttempts(reviews);
-  }, []);
+  }, [router]);
 
   const totalMarks = useMemo(() => questions.reduce((sum, q) => sum + Number(q.points || 0), 0), [questions]);
   const totalPenalty = useMemo(() => questions.reduce((sum, q) => sum + Number(q.penalty || 0), 0), [questions]);
@@ -113,7 +126,8 @@ export default function TeacherPage() {
     }
   };
 
-  const saveExam = () => {
+  const saveExam = async () => {
+    setSaveError("");
     const exam: Exam = {
       id: savedId ?? crypto.randomUUID(),
       title,
@@ -129,10 +143,74 @@ export default function TeacherPage() {
         rateLimitPerMinute: 60,
       },
     };
-    saveStoredExam(exam);
-    setSavedId(exam.id);
-    router.push("/dashboard");
+    try {
+      const res = await api.post("/exams", exam);
+      setSavedId(res.data?.data?.id ?? exam.id);
+    } catch (err: unknown) {
+      setSaveError(getApiErrorMessage(err, "Could not publish exam"));
+    }
   };
+
+  const logout = () => {
+    clearSession();
+    setIsTeacher(false);
+    setLoginPassword("");
+  };
+
+  const loginTeacher = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
+    try {
+      const res = await api.post("/auth/teacher/login", {
+        email: loginEmail,
+        password: loginPassword,
+      });
+      saveSession(res.data.data.token, res.data.data.user);
+      setIsTeacher(true);
+    } catch (err: unknown) {
+      setLoginError(getApiErrorMessage(err, "Invalid teacher credentials"));
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  if (!isTeacher) {
+    return (
+      <main className="auth-shell teacher-auth-shell">
+        <form className="auth-card" onSubmit={loginTeacher}>
+          <div className="auth-icon">
+            <FileQuestion size={24} />
+          </div>
+          <p className="eyebrow">Teacher portal</p>
+          <h1>Unlock teacher workspace</h1>
+          <label className="form-label">
+            Teacher Gmail
+            <input
+              className="form-input"
+              type="email"
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+            />
+          </label>
+          <label className="form-label">
+            Password
+            <input
+              className="form-input"
+              type="password"
+              value={loginPassword}
+              onChange={(event) => setLoginPassword(event.target.value)}
+            />
+          </label>
+          {loginError && <p className="auth-error">{loginError}</p>}
+          <button className="primary-button auth-submit" disabled={loginLoading}>
+            <LogIn size={16} />
+            <span>{loginLoading ? "Unlocking" : "Unlock Teacher"}</span>
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="teacher-shell">
@@ -142,9 +220,9 @@ export default function TeacherPage() {
           <span>Teacher Section</span>
         </div>
         <nav className="topbar-actions">
-          <button className="ghost-button" onClick={() => router.push("/dashboard")}>
-            <ArrowLeft size={16} />
-            <span>Dashboard</span>
+          <button className="ghost-button" onClick={logout}>
+            <LogOut size={16} />
+            <span>Logout</span>
           </button>
           <button className="primary-button" onClick={saveExam}>
             <Save size={16} />
@@ -193,7 +271,9 @@ export default function TeacherPage() {
           <div className="teacher-summary">
             <span>Total marks <strong>{totalMarks}</strong></span>
             <span>Max paste penalty <strong>{totalPenalty}</strong></span>
+            {savedId && <span>Published exam <strong>{savedId.slice(0, 8)}</strong></span>}
           </div>
+          {saveError && <p className="auth-error">{saveError}</p>}
           <div className="review-list">
             <strong>Recent submissions</strong>
             {attempts.length === 0 ? (

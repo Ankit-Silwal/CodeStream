@@ -10,6 +10,9 @@ const fallbackStarterCode = {
 
 export async function createExamController(req: Request, res: Response) {
   if (!req.userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+  if ((req.user as any)?.role !== "teacher") {
+    return res.status(403).json({ success: false, message: "Only teachers can create exams" });
+  }
   if (!req.body?.title || !Array.isArray(req.body?.questions)) {
     return res.status(400).json({ success: false, message: "Missing exam title or questions" });
   }
@@ -34,20 +37,23 @@ export async function createExamController(req: Request, res: Response) {
 
 export async function listExamsController(req: Request, res: Response) {
   if (!req.userId) return res.status(401).json({ success: false, message: "Unauthorized" });
-  const exams = await listExams(req.userId);
+  const exams = await listExams(req.userId, (req.user as any)?.role ?? "student");
   return res.json({ success: true, data: exams });
 }
 
 export async function getExamController(req: Request, res: Response) {
   const examId = String(req.params.examId ?? "");
   if (!examId) return res.status(400).json({ success: false, message: "Missing exam id" });
-  const exam = await getExam(examId);
+  const exam = await getExam(examId, req.userId, (req.user as any)?.role ?? "student");
   if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
   return res.json({ success: true, data: exam });
 }
 
 export async function submitAttemptController(req: Request, res: Response) {
   if (!req.userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+  if ((req.user as any)?.role !== "student") {
+    return res.status(403).json({ success: false, message: "Only students can submit attempts" });
+  }
   const examId = String(req.params.examId ?? "");
   if (!examId) return res.status(400).json({ success: false, message: "Missing exam id" });
   const attempt = await saveAttempt({
@@ -63,6 +69,9 @@ export async function submitAttemptController(req: Request, res: Response) {
 }
 
 export async function importLeetCodeController(req: Request, res: Response) {
+  if ((req.user as any)?.role !== "teacher") {
+    return res.status(403).json({ success: false, message: "Only teachers can import questions" });
+  }
   const url = String(req.body?.url ?? "");
   const slug = url.split("/problems/")[1]?.split("/")[0];
   if (!slug) {

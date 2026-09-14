@@ -23,6 +23,8 @@ import {
   languages,
   SecurityEvent,
 } from "../../../lib/exam";
+import { api } from "../../../lib/api";
+import { getSessionUser } from "../../../lib/auth";
 
 export default function ExamAttemptPage() {
   const params = useParams();
@@ -64,10 +66,23 @@ export default function ExamAttemptPage() {
   );
 
   useEffect(() => {
-    const storedExams = getStoredExams();
-    const found = storedExams.find((item) => item.id === examId) ?? storedExams[0] ?? null;
-    setExam(found);
-    if (found) {
+    const user = getSessionUser();
+    if (!localStorage.getItem("token") || user?.role !== "student") {
+      router.replace("/student/login");
+      return;
+    }
+
+    const loadExam = async () => {
+      let found: Exam | null = null;
+      try {
+        const res = await api.get(`/exams/${examId}`);
+        found = res.data?.data ?? null;
+      } catch {
+        const storedExams = getStoredExams();
+        found = storedExams.find((item) => item.id === examId) ?? storedExams[0] ?? null;
+      }
+      setExam(found);
+      if (!found) return;
       const initialAnswers = Object.fromEntries(
         found.questions.map((question) => [
           question.id,
@@ -81,8 +96,10 @@ export default function ExamAttemptPage() {
         ]),
       );
       setAnswers(initialAnswers);
-    }
-  }, [examId]);
+    };
+
+    loadExam();
+  }, [examId, router]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -168,7 +185,7 @@ export default function ExamAttemptPage() {
     );
   };
 
-  const finishExam = () => {
+  const finishExam = async () => {
     if (!exam) return;
     const payload = {
       examId: exam.id,
@@ -178,6 +195,17 @@ export default function ExamAttemptPage() {
       securityEvents: events,
     };
     localStorage.setItem(`codestream-attempt-${exam.id}`, JSON.stringify(payload));
+    try {
+      await api.post(`/exams/${exam.id}/submit`, {
+        rawScore: score.raw,
+        penaltyScore: score.penalty,
+        finalScore: score.adjusted,
+        answers,
+        securityEvents: events,
+      });
+    } catch {
+      // Keep the local copy so the attempt is not lost if the API is unavailable.
+    }
     setSubmitted(true);
   };
 

@@ -1,8 +1,11 @@
+import "./env.js";
 import {Redis} from "ioredis"
 
-export const redis=new Redis(process.env.REDIS_URL!)
+const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 
-export const bullmqRedis = new Redis(process.env.REDIS_URL!, {
+export const redis=new Redis(redisUrl)
+
+export const bullmqRedis = new Redis(redisUrl, {
   maxRetriesPerRequest: null
 })
 

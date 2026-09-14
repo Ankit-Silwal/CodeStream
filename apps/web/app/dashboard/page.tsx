@@ -7,45 +7,66 @@ import {
   BookOpenCheck,
   Clock3,
   FileCode2,
-  GraduationCap,
   LockKeyhole,
-  Plus,
+  LogOut,
   ShieldCheck,
 } from "lucide-react";
-import { Exam, getStoredExams } from "../../lib/exam";
+import { ExamLanguage } from "../../lib/exam";
+import { api } from "../../lib/api";
+import { clearSession, getSessionUser } from "../../lib/auth";
+
+type ExamSummary = {
+  id: string;
+  title: string;
+  status: "draft" | "scheduled" | "active" | "closed";
+  duration_minutes: number;
+  allowed_languages: ExamLanguage[];
+  rate_limit_per_minute: number;
+  question_count: number;
+  total_marks: number;
+};
 
 export default function Dashboard() {
   const router = useRouter();
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [userName, setUserName] = useState("Teacher");
+  const [exams, setExams] = useState<ExamSummary[]>([]);
+  const [userName, setUserName] = useState("Student");
 
   useEffect(() => {
-    setExams(getStoredExams());
     const token = localStorage.getItem("token");
-    if (!token) return;
+    const user = getSessionUser();
+    if (!token || !user) {
+      router.replace("/student/login");
+      return;
+    }
+    if (user.role === "teacher") {
+      router.replace("/teacher");
+      return;
+    }
+    if (user.role === "admin") {
+      router.replace("/admin");
+      return;
+    }
+    setUserName(user.name?.split(" ")[0] || "Student");
 
-    fetch("http://localhost:5000/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
+    api
+      .get("/exams")
+      .then((res) => res.data)
       .then((data) => {
-        if (data.user?.name) setUserName(data.user.name.split(" ")[0]);
+        setExams(data.data ?? []);
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   const totals = useMemo(() => {
-    const questionCount = exams.reduce((sum, exam) => sum + exam.questions.length, 0);
-    const codingCount = exams.reduce(
-      (sum, exam) => sum + exam.questions.filter((q) => q.type === "coding").length,
-      0,
-    );
-    const maxScore = exams.reduce(
-      (sum, exam) => sum + exam.questions.reduce((total, q) => total + q.points, 0),
-      0,
-    );
-    return { questionCount, codingCount, maxScore };
+    const questionCount = exams.reduce((sum, exam) => sum + Number(exam.question_count ?? 0), 0);
+    const maxScore = exams.reduce((sum, exam) => sum + Number(exam.total_marks ?? 0), 0);
+    return { questionCount, maxScore };
   }, [exams]);
+
+  const logout = () => {
+    clearSession();
+    router.replace("/student/login");
+  };
 
   return (
     <main className="exam-shell">
@@ -55,11 +76,11 @@ export default function Dashboard() {
           <span>CodeStream Exams</span>
         </div>
         <nav className="topbar-actions" aria-label="Primary actions">
-          <button className="ghost-button" onClick={() => router.push("/teacher")}>
-            <Plus size={16} />
-            <span>Teacher Section</span>
+          <button className="ghost-button" onClick={logout}>
+            <LogOut size={16} />
+            <span>Logout</span>
           </button>
-          <button className="primary-button" onClick={() => router.push(`/exam/${exams[0]?.id ?? "secure-dsa-101"}`)}>
+          <button className="primary-button" disabled={!exams[0]} onClick={() => router.push(`/exam/${exams[0]?.id}`)}>
             <FileCode2 size={16} />
             <span>Open Exam</span>
           </button>
@@ -72,10 +93,6 @@ export default function Dashboard() {
             <BookOpenCheck size={16} />
             <span>Assessments</span>
           </button>
-          <button className="side-item" onClick={() => router.push("/teacher")}>
-            <GraduationCap size={16} />
-            <span>Teacher</span>
-          </button>
           <button className="side-item">
             <LockKeyhole size={16} />
             <span>Security Policy</span>
@@ -85,24 +102,20 @@ export default function Dashboard() {
         <section className="dashboard-content">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Assessment control center</p>
+              <p className="eyebrow">Student exam workspace</p>
               <h1>Good day, {userName}</h1>
               <p>
-                Create secured MCQ and coding exams with paste penalties, typing telemetry,
-                complexity targets, and language-specific starter code.
+                Open active assessments assigned by your teacher, answer MCQs and coding
+                questions, and submit your attempt with security events recorded.
               </p>
             </div>
-            <button className="primary-button" onClick={() => router.push("/teacher")}>
-              <Plus size={16} />
-              <span>Create Exam</span>
-            </button>
           </div>
 
           <div className="metric-row">
             <Metric label="Active exams" value={String(exams.filter((e) => e.status === "active").length)} />
             <Metric label="Questions" value={String(totals.questionCount)} />
-            <Metric label="Coding tasks" value={String(totals.codingCount)} />
             <Metric label="Total marks" value={String(totals.maxScore)} />
+            <Metric label="Assigned" value={String(exams.length)} />
           </div>
 
           <div className="policy-band">
@@ -123,9 +136,6 @@ export default function Dashboard() {
 
           <div className="exam-list">
             {exams.map((exam) => {
-              const marks = exam.questions.reduce((sum, q) => sum + q.points, 0);
-              const coding = exam.questions.filter((q) => q.type === "coding").length;
-              const mcq = exam.questions.filter((q) => q.type === "mcq").length;
               return (
                 <article className="exam-card" key={exam.id}>
                   <div className="exam-card-header">
@@ -138,13 +148,13 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <p>
-                    {coding} coding questions, {mcq} MCQs, {marks} marks. Languages:
-                    {" "}{exam.allowedLanguages.map((lang) => lang.toUpperCase()).join(", ")}.
+                    {exam.question_count} questions, {exam.total_marks} marks. Languages:
+                    {" "}{exam.allowed_languages.map((lang) => lang.toUpperCase()).join(", ")}.
                   </p>
                   <div className="exam-meta">
-                    <span><Clock3 size={14} /> {exam.durationMinutes} min</span>
+                    <span><Clock3 size={14} /> {exam.duration_minutes} min</span>
                     <span><AlertTriangle size={14} /> paste penalty on</span>
-                    <span><LockKeyhole size={14} /> DoS limits {exam.security.rateLimitPerMinute}/min</span>
+                    <span><LockKeyhole size={14} /> DoS limits {exam.rate_limit_per_minute}/min</span>
                   </div>
                 </article>
               );

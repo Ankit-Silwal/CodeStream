@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Editor from "@monaco-editor/react";
+import { Play, Terminal } from "lucide-react";
 
 interface CodeEditorProps {
   readonly code: string;
@@ -17,16 +18,16 @@ export function MonacoEditor({ code, onChange, onCursorChange }: CodeEditorProps
     setIsRunning(true);
     setOutput("");
     try {
-      // Simulate network request
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       setOutput("Still Under Construction");
     } finally {
       setIsRunning(false);
     }
   };
+
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <div style={{ width: "70%" }}>
+    <div className="room-workspace">
+      <section className="room-editor-pane">
         <Editor
           height="100vh"
           theme="vs-dark"
@@ -38,9 +39,9 @@ export function MonacoEditor({ code, onChange, onCursorChange }: CodeEditorProps
             }
           }}
           onMount={(editor) => {
-            editor.onDidChangeCursorPosition((e) => {
+            editor.onDidChangeCursorPosition((event) => {
               if (onCursorChange) {
-                onCursorChange(e.position.lineNumber, e.position.column);
+                onCursorChange(event.position.lineNumber, event.position.column);
               }
             });
           }}
@@ -49,56 +50,25 @@ export function MonacoEditor({ code, onChange, onCursorChange }: CodeEditorProps
             fontSize: 14,
           }}
         />
-      </div>
+      </section>
 
-      <div
-        style={{
-          width: "30%",
-          borderLeft: "1px solid #30363d",
-          padding: "12px",
-          background: "#0d1117",
-          color: "#e6edf3",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <button
-          onClick={runCode}
-          disabled={isRunning}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginBottom: "12px",
-            background: isRunning ? "#2ea043" : "#238636",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: isRunning ? "not-allowed" : "pointer",
-            fontWeight: "600",
-            opacity: isRunning ? 0.7 : 1,
-            transition: "all 0.2s ease-in-out",
-          }}
-        >
-          {isRunning ? "Running..." : "▶ Run Code"}
+      <aside className="room-output-pane">
+        <div className="room-output-header">
+          <div>
+            <span className="eyebrow">Live workspace</span>
+            <h2>Console</h2>
+          </div>
+          <Terminal size={18} />
+        </div>
+        <button className="primary-button room-run-button" onClick={runCode} disabled={isRunning}>
+          <Play size={16} />
+          <span>{isRunning ? "Running" : "Run Code"}</span>
         </button>
 
-        <div
-          style={{
-            flex: 1,
-            background: "#161b22",
-            border: "1px solid #30363d",
-            borderRadius: "8px",
-            padding: "10px",
-            overflowY: "auto",
-            fontSize: "13px",
-            fontFamily: "monospace",
-            whiteSpace: "pre-wrap",
-            color: output ? "#e6edf3" : "#8b949e",
-          }}
-        >
+        <pre className={output ? "room-output active" : "room-output"}>
           {output || "Output will appear here..."}
-        </div>
-      </div>
+        </pre>
+      </aside>
     </div>
   );
 }
