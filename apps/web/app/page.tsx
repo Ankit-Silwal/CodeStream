@@ -8,7 +8,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    let token = searchParams.get("token");
+    const token = searchParams.get("token");
 
     if (token) {
       localStorage.setItem("token", token);
